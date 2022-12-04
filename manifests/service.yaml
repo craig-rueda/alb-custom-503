@@ -1,0 +1,17 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: example-app
+  namespace: custom-503
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    # Note that the selector will target pods from both the "app"
+    # as well as the "maintenance" deployments
+    app-name: example-app
+  type: ClusterIP

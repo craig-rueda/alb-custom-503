@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: maintenance
+  namespace: custom-503
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app-name: example-app
+      pod-name: maintenance
+  template:
+    metadata:
+      labels:
+        app-name: example-app
+        pod-name: maintenance
+      namespace: custom-503
+    spec:
+      containers:
+      - image: nginx:latest
+        imagePullPolicy: Always
+        name: nginx
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /k8s-health
+            port: http
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /k8s-health
+            port: http
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: 20m
+            memory: 20Mi
+          requests:
+            cpu: 10m
+            memory: 20Mi
+        volumeMounts:
+        - mountPath: /etc/nginx/nginx.conf
+          name: custom-503
+          subPath: nginx-maint.conf
+      volumes:
+      - configMap:
+          name: custom-503
+        name: custom-503

@@ -1,0 +1,111 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: custom-503
+  namespace: custom-503
+data:
+  nginx-app.conf: |
+    # Config for the app container(s)
+    
+    user  nginx;
+    worker_processes  auto;
+
+    error_log  /var/log/nginx/error.log notice;
+    pid        /var/run/nginx.pid;
+
+    events {
+        worker_connections  1024;
+    }
+
+    http {
+        include       /etc/nginx/mime.types;
+        default_type  application/octet-stream;
+
+        log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                          '$status $body_bytes_sent "$http_referer" '
+                          '"$http_user_agent" "$http_x_forwarded_for"';
+
+        access_log  /var/log/nginx/access.log  main;
+
+        server {
+          listen       80;
+          server_name  _;
+    
+          add_header Content-Type text/html;
+    
+          # This is used by the ALB to determine whether or not this pod
+          # is healthy. Note that we will always respond with a 200
+          # which will keep this target in an "HEALTHY" state from the 
+          # ALB's POV as long as k8s deems this pod as being healthy.
+          # In a "real" deployment, you could also perform some other "health checks"
+          # here as well...
+          location /lb-health {
+            access_log off;
+            return 200 'OK';
+          }
+    
+          # This is just a std k8s health check. Perform whatever checks your app need in here...
+          location /k8s-health {
+            access_log off;
+            return 200 'OK';
+          }
+      
+          location / {
+              return 200 'You reached the app!!';
+          }
+      }
+    }
+
+  nginx-maint.conf: |
+    # Config for the maintenance container(s)
+    
+    user  nginx;
+    worker_processes  auto;
+
+    error_log  /var/log/nginx/error.log notice;
+    pid        /var/run/nginx.pid;
+
+    events {
+        worker_connections  1024;
+    }
+
+    http {
+        include       /etc/nginx/mime.types;
+        default_type  application/octet-stream;
+
+        log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                          '$status $body_bytes_sent "$http_referer" '
+                          '"$http_user_agent" "$http_x_forwarded_for"';
+
+        access_log  /var/log/nginx/access.log  main;
+
+        server {
+          listen       80;
+          server_name  _;
+    
+          add_header Content-Type text/html;
+    
+          # This is used by the ALB to determine whether or not this pod
+          # is healthy. Note that we will always respond with an error
+          # which will keep this target in an "UNHEALTHY" state from the 
+          # ALB's POV 
+          location /lb-health {
+            access_log off;
+            return 404;
+          }
+    
+          # This endpoint is used by Kubernetes in order to determine this
+          # pod's health. Note that we always return a 200 here in order
+          # to keep the pod "healthy" from k8s' POV. This ensures that the ALB
+          # ingress controller will keep this pod registered as a target with this
+          # pod's associated ALB instance
+          location /k8s-health {
+            access_log off;
+            return 200 'OK';
+          }
+      
+          location / {
+              return 200 'Custom Maintenance Page Here...';
+          }
+      }
+    }
