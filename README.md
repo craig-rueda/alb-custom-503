@@ -7,6 +7,8 @@ where this could arise include:
 * A misconfiguration causes all pods to become unhealthy
 * A planned maintenance of a given app needs to be performed and the replica counts have been temporarily set to `0`
 
+Note that this example is outlined in the linked [blog post](https://medium.com/@crueda/custom-503-page-with-alb-ingress-b2cd652bc018)
+
 ## How it works
 
 1. A "maintenance" deployment is created that's sole purpose is to serve up a "site maintenance" page (preferably static  HTML)
